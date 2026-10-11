@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Wren — a calm activity monitor for macOS</title>
-  <meta name="description" content="Wren is a lightweight, native macOS activity monitor that explains what your Mac is doing in plain language. ~0.1% CPU and ~1 MB of memory at rest." />
+  <meta name="description" content="Wren is a lightweight, native macOS activity monitor that explains what your Mac is doing in plain language. ~0.5% CPU and ~60 MB of memory in the menu bar." />
   <meta property="og:title" content="Wren — a calm activity monitor for macOS" />
   <meta property="og:description" content="Your Mac, explained in plain language. Lightweight, native, and honest." />
   <meta property="og:image" content="assets/app-icon.png" />
@@ -55,6 +55,7 @@
         <nav class="hidden md:flex items-center gap-8 text-sm text-ink-soft">
           <a href="#menubar" class="nav-link">Menu bar</a>
           <a href="#lightweight" class="nav-link">Featherweight</a>
+          <a href="#wiki" class="nav-link">Wiki</a>
           <a href="#features" class="nav-link">Features</a>
           <a href="#language" class="nav-link">Plain language</a>
           <a href="#answers" class="nav-link">Answers</a>
@@ -94,8 +95,8 @@
             </div>
             <dl class="flex flex-wrap gap-x-8 gap-y-3 mt-10 text-sm reveal" style="--d:360ms">
               <div class="flex items-baseline gap-2">
-                <dt class="text-ink-faint">At rest</dt>
-                <dd class="font-mono font-medium text-wren">~0.1% CPU · ~1 MB</dd>
+                <dt class="text-ink-faint">Menu bar only</dt>
+                <dd class="font-mono font-medium text-wren">~0.5% CPU · ~60 MB</dd>
               </div>
               <div class="flex items-baseline gap-2">
                 <dt class="text-ink-faint">Dependencies</dt>
@@ -114,69 +115,102 @@
               <div id="hero-window" class="mock-window">
                 <div class="mock-titlebar">
                   <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
-                  <span class="mock-title">Wren — Overview</span>
-                  <span class="mock-live"><span class="live-dot"></span>Live</span>
+                  <nav class="mock-tabs" aria-hidden="true">
+                    <span class="mock-tab is-active">Overview</span><span class="mock-tab">Apps</span><span class="mock-tab">Energy</span><span class="mock-tab">History</span><span class="mock-tab">Wiki</span><span class="mock-tab">Advanced</span><span class="mock-tab">Settings</span>
+                  </nav>
+                  <span class="mock-pause" aria-hidden="true"><i></i><i></i></span>
                 </div>
                 <div class="mock-body">
-                  <div class="health-row">
-                    <span class="health-dot" aria-hidden="true"></span>
-                    <div class="min-w-0">
-                      <p class="health-title">Your Mac is running normally</p>
-                      <p class="health-sub">CPU, memory, disk, and network all look settled.</p>
+                  <div class="readout">
+                    <div class="rd-head">
+                      <span class="rd-eyebrow">Live reading</span>
+                      <span class="rd-dot" aria-hidden="true"></span>
+                      <span class="rd-cpu font-mono">CPU 30%</span>
                     </div>
-                    <span class="health-chip">Normal</span>
-                  </div>
-
-                  <div class="mock-charts">
-                    <div class="chart-card">
-                      <div class="chart-head">
-                        <span>CPU</span>
-                        <span class="font-mono text-ink"><span class="live-num" data-base="11" data-jitter="7" data-min="4" data-max="24">11</span>%</span>
+                    <div class="rd-main">
+                      <div class="rd-verdict-col">
+                        <p class="rd-verdict">Your Mac is working hard.</p>
+                        <p class="rd-sub">CPU 30% &nbsp;·&nbsp; About 7.8 GB of RAM in use</p>
                       </div>
-                      <svg class="drift-chart" data-color="#1f7fb8" data-min="4" data-max="24" viewBox="0 0 260 80" preserveAspectRatio="none" aria-hidden="true">
-                        <path class="chart-area" fill="rgba(31,127,184,0.10)"></path>
-                        <path class="chart-line" fill="none" stroke="#1f7fb8" stroke-width="2" stroke-linecap="round"></path>
-                      </svg>
-                    </div>
-                    <div class="chart-card">
-                      <div class="chart-head">
-                        <span>Memory pressure</span>
-                        <span class="font-mono text-leaf">Low</span>
+                      <div class="rd-chartcard" aria-hidden="true">
+                        <svg class="drift-chart" data-min="14" data-max="48" viewBox="0 0 168 58" preserveAspectRatio="none">
+                          <path class="chart-area" fill="rgba(138,150,240,0.14)"></path>
+                          <path class="chart-line" fill="none" stroke="#8a96f0" stroke-width="2" stroke-linecap="round"></path>
+                        </svg>
                       </div>
-                      <svg class="drift-chart" data-color="#3e9b4f" data-min="8" data-max="30" viewBox="0 0 260 80" preserveAspectRatio="none" aria-hidden="true">
-                        <path class="chart-area" fill="rgba(62,155,79,0.12)"></path>
-                        <path class="chart-line" fill="none" stroke="#3e9b4f" stroke-width="2" stroke-linecap="round"></path>
-                      </svg>
+                    </div>
+                    <div class="rd-gauges">
+                      <div class="rd-gauge">
+                        <span class="rd-glabel">CPU</span>
+                        <span class="rd-track"><i class="rd-fill rd-fill-amber" style="width:30%"></i></span>
+                        <span class="rd-val font-mono">30%</span>
+                      </div>
+                      <div class="rd-gauge">
+                        <span class="rd-glabel">Memory</span>
+                        <span class="rd-track"><i class="rd-fill rd-fill-accent" style="width:49%"></i></span>
+                        <span class="rd-val font-mono">7.8&nbsp;GB</span>
+                      </div>
+                    </div>
+                    <div class="rd-rule" aria-hidden="true"></div>
+                    <div class="rd-now">
+                      <p class="rd-now-label">Right now</p>
+                      <div class="rd-tiles">
+                        <div class="rd-tile">
+                          <span class="rd-tlabel">Disk read <svg class="rd-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.6" r="0.4" fill="currentColor"/></svg></span>
+                          <span class="rd-tval font-mono"><span class="live-num" data-base="23" data-jitter="10" data-min="2" data-max="60" data-decimals="1">23.0</span> MB/s</span>
+                        </div>
+                        <div class="rd-tile">
+                          <span class="rd-tlabel">Disk write <svg class="rd-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.6" r="0.4" fill="currentColor"/></svg></span>
+                          <span class="rd-tval font-mono"><span class="live-num" data-base="0.8" data-jitter="1.2" data-min="0" data-max="6" data-decimals="1">0.8</span> MB/s</span>
+                        </div>
+                        <div class="rd-tile">
+                          <span class="rd-tlabel">Network down <svg class="rd-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.6" r="0.4" fill="currentColor"/></svg></span>
+                          <span class="rd-tval font-mono"><span class="live-num" data-base="3.4" data-jitter="2.8" data-min="0.3" data-max="14" data-decimals="1">3.4</span> KB/s</span>
+                        </div>
+                        <div class="rd-tile">
+                          <span class="rd-tlabel">Network up <svg class="rd-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.6" r="0.4" fill="currentColor"/></svg></span>
+                          <span class="rd-tval font-mono"><span class="live-num" data-base="3.0" data-jitter="2.2" data-min="0.2" data-max="10" data-decimals="1">3.0</span> KB/s</span>
+                        </div>
+                        <div class="rd-tile">
+                          <span class="rd-tlabel">Battery <svg class="rd-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.6" r="0.4" fill="currentColor"/></svg></span>
+                          <span class="rd-tval font-mono">100%</span>
+                          <span class="rd-tcap">On battery</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div class="mock-apps">
-                    <p class="mock-section-label">Top apps by CPU</p>
-                    <div class="app-row">
-                      <span class="app-dot" style="--c:#8b5cf6"></span>
-                      <span class="app-name">Xcode</span>
-                      <span class="app-bar"><i class="live-bar" data-base="30" data-jitter="14" data-min="8" data-max="62" style="width:30%"></i></span>
-                      <span class="app-cpu font-mono"><span class="live-num" data-base="8.2" data-jitter="3.5" data-min="2" data-max="16" data-decimals="1">8.2</span>%</span>
-                    </div>
-                    <div class="app-row">
-                      <span class="app-dot" style="--c:#0ea5e9"></span>
-                      <span class="app-name">Safari</span>
-                      <span class="app-bar"><i class="live-bar" data-base="18" data-jitter="10" data-min="4" data-max="40" style="width:18%"></i></span>
-                      <span class="app-cpu font-mono"><span class="live-num" data-base="5.1" data-jitter="2.4" data-min="1" data-max="11" data-decimals="1">5.1</span>%</span>
-                    </div>
-                    <div class="app-row">
-                      <span class="app-dot" style="--c:#f59e0b"></span>
-                      <span class="app-name">Music</span>
-                      <span class="app-bar"><i class="live-bar" data-base="7" data-jitter="4" data-min="2" data-max="16" style="width:7%"></i></span>
-                      <span class="app-cpu font-mono"><span class="live-num" data-base="1.8" data-jitter="1" data-min="0.4" data-max="4" data-decimals="1">1.8</span>%</span>
+                  <p class="mock-eyebrow"><span>What's happening</span></p>
+                  <div class="mock-card">
+                    <div class="reason-row">
+                      <span class="reason-dot" aria-hidden="true"></span>
+                      <div>
+                        <p class="reason-head">macOS is under memory pressure.</p>
+                        <p class="reason-sub">It is working to free up memory by compressing or moving data.</p>
+                      </div>
                     </div>
                   </div>
 
-                  <div class="mock-foot font-mono">
-                    <span>Disk <b><span class="live-num" data-base="14" data-jitter="10" data-min="0" data-max="48">14</span> MB/s</b></span>
-                    <span>Net ↓ <b><span class="live-num" data-base="3.2" data-jitter="2.6" data-min="0" data-max="9" data-decimals="1">3.2</span> MB/s</b></span>
-                    <span>Battery <b><span class="live-num" data-base="87" data-jitter="0" data-min="87" data-max="87">87</span>%</b></span>
-                    <span class="mock-sample">Sampling every 2 s</span>
+                  <p class="mock-eyebrow"><span>What's using your Mac</span></p>
+                  <div class="mock-card apps-card">
+                    <div class="top-app">
+                      <span class="top-icon" style="--ibg:#26324a" aria-hidden="true">Q</span>
+                      <span class="top-name"><b>Qoder</b><i>3 processes</i></span>
+                      <span class="top-cpu font-mono">23%</span>
+                      <span class="top-mem font-mono">2.2 GB</span>
+                    </div>
+                    <div class="top-app">
+                      <img src="assets/app-icon.png" alt="" class="top-icon-img" />
+                      <span class="top-name"><b>Wren</b><i>1 process</i></span>
+                      <span class="top-cpu font-mono">18%</span>
+                      <span class="top-mem font-mono">57.6 MB</span>
+                    </div>
+                    <div class="top-app">
+                      <span class="top-icon" style="--ibg:#2f7bf6" aria-hidden="true">S</span>
+                      <span class="top-name"><b>Safari</b><i>4 processes</i></span>
+                      <span class="top-cpu font-mono">9%</span>
+                      <span class="top-mem font-mono">412 MB</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -213,29 +247,41 @@
               <span class="fm-right">
                 <button id="menubar-toggle" class="fm-wren" aria-expanded="false" aria-label="Toggle Wren menu bar pop-up">
                   <svg class="w-[18px] h-[18px]" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 34h12l6-16 10 32 8-24 5 8h15"/></svg>
-                  <span class="fm-metric font-mono">12%</span>
+                  <span class="fm-metric font-mono">12% 8.2 GB</span>
                 </button>
                 <span class="fm-item hidden sm:inline">Wed 11 Oct</span>
                 <span class="fm-item font-mono" id="menubar-clock">10:24</span>
               </span>
             </div>
             <div id="menubar-popup" class="menubar-popup" role="dialog" aria-label="Wren menu bar pop-up">
-              <div class="mp-head">
-                <span class="health-dot health-dot-sm"></span>
-                <span class="font-medium text-sm">Running normally</span>
-                <span class="mp-chip font-mono">12% CPU</span>
+              <div class="mp-strip">
+                <div class="mp-strip-top">
+                  <span class="mp-dot" aria-hidden="true"></span>
+                  <span class="mp-eyebrow">Your Mac, right now</span>
+                </div>
+                <p class="mp-verdict">Your Mac is running normally.</p>
               </div>
-              <svg class="drift-chart mp-chart" data-color="#29a3d8" data-min="4" data-max="26" viewBox="0 0 260 60" preserveAspectRatio="none" aria-hidden="true">
-                <path class="chart-area" fill="rgba(41,163,216,0.10)"></path>
-                <path class="chart-line" fill="none" stroke="#29a3d8" stroke-width="2" stroke-linecap="round"></path>
-              </svg>
-              <div class="mp-rows font-mono">
-                <div><span>In use</span><b>8.2 / 16 GB</b></div>
-                <div><span>Pressure</span><b class="text-leaf">Low</b></div>
-                <div><span>Swap</span><b>1.8 GB · stable</b></div>
-              </div>
-              <div class="mp-foot">
-                Wren itself: <b class="font-mono">0.1% CPU · ~1 MB</b>
+              <div class="mp-body">
+                <p class="mp-calm">Nothing needs your attention.</p>
+                <p class="mp-nums">
+                  <span class="mp-nlabel">CPU</span>
+                  <b class="font-mono">12%</b>
+                  <span class="mp-nsep" aria-hidden="true">·</span>
+                  <span class="mp-nlabel">RAM</span>
+                  <b class="font-mono">8.2 GB</b>
+                </p>
+                <div class="mp-rule" aria-hidden="true"></div>
+                <div class="mp-actions">
+                  <span class="mp-action">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="m9.5 14.5 5-5M10.5 9.5h4v4"/></svg>
+                    Open Wren
+                  </span>
+                  <span class="mp-action">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v7.5"/><path d="M6.6 6.4a8 8 0 1 0 10.8 0"/></svg>
+                    Quit
+                  </span>
+                </div>
+                <p class="mp-foot">Wren itself: <b class="font-mono">~0.5% CPU · ~60 MB</b></p>
               </div>
             </div>
           </div>
@@ -260,19 +306,19 @@
 
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 mt-14">
           <div class="stat-card reveal">
-            <p class="stat-num font-mono"><span data-count-to="0.1" data-decimals="1" data-prefix="~">0</span><span class="stat-unit">%</span></p>
+            <p class="stat-num font-mono"><span data-count-to="0.5" data-decimals="1" data-prefix="~">0</span><span class="stat-unit">%</span></p>
             <p class="stat-label">CPU — menu bar only</p>
           </div>
           <div class="stat-card reveal" style="--d:90ms">
-            <p class="stat-num font-mono"><span data-count-to="1" data-prefix="~">0</span><span class="stat-unit">MB</span></p>
+            <p class="stat-num font-mono"><span data-count-to="60" data-prefix="~">0</span><span class="stat-unit">MB</span></p>
             <p class="stat-label">Memory — menu bar only</p>
           </div>
           <div class="stat-card reveal" style="--d:180ms">
-            <p class="stat-num font-mono"><span data-count-to="5" data-prefix="~">0</span><span class="stat-unit">%</span></p>
+            <p class="stat-num font-mono"><span data-count-to="8" data-prefix="~">0</span><span class="stat-unit">%</span></p>
             <p class="stat-label">CPU — window open</p>
           </div>
           <div class="stat-card reveal" style="--d:270ms">
-            <p class="stat-num font-mono"><span data-count-to="50" data-prefix="~">0</span><span class="stat-unit">MB</span></p>
+            <p class="stat-num font-mono"><span data-count-to="60" data-prefix="~">0</span><span class="stat-unit">MB</span></p>
             <p class="stat-label">Memory — window open</p>
           </div>
         </div>
@@ -281,7 +327,63 @@
           <span class="flex items-center gap-2"><i class="tick"></i>No Electron, no browser wrapper</span>
           <span class="flex items-center gap-2"><i class="tick"></i>Zero third-party dependencies</span>
           <span class="flex items-center gap-2"><i class="tick"></i>100% native Swift &amp; SwiftUI</span>
+          <span class="flex items-center gap-2"><i class="tick"></i>Memory holds at ~60 MB either way</span>
           <span class="flex items-center gap-2"><i class="tick"></i>Respects Reduce Motion</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ WIKI ============ -->
+    <section id="wiki" class="py-24 md:py-32 scroll-mt-20">
+      <div class="mx-auto max-w-shell px-6">
+        <div class="text-center max-w-2xl mx-auto">
+          <p class="eyebrow justify-center reveal">The wiki</p>
+          <h2 class="font-display font-medium text-4xl md:text-5xl tracking-tight mt-4 reveal" style="--d:90ms">
+            kernel_task, mds_stores,<br />fileproviderd — explained.
+          </h2>
+          <p class="text-ink-soft text-lg leading-relaxed mt-5 reveal" style="--d:180ms">
+            Every activity monitor shows the same cryptic process list and leaves you to
+            search the web for what it means. Wren keeps a field guide built in — 48 entries
+            and growing, written for humans: what a process is, whose side it's on, and
+            whether quitting it is safe. Search by name, part of a name, or just by what's
+            going wrong.
+          </p>
+        </div>
+
+        <div class="wiki-demo reveal" style="--d:260ms">
+          <div class="wd-search">
+            <svg class="w-3.5 h-3.5 text-ink-faint shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <span id="wd-typed" class="font-mono">fan loud</span><span class="wiki-caret" aria-hidden="true"></span>
+          </div>
+          <div class="wd-panes">
+            <div class="wd-list">
+              <p class="wd-list-head" id="wd-count">2 matching</p>
+              <div id="wd-rows" class="wd-rows">
+                <div class="wd-row is-selected"><b>kernel_task</b><span>Part of macOS</span></div>
+                <div class="wd-row"><b>WindowServer</b><span>Part of macOS</span></div>
+              </div>
+            </div>
+            <div class="wd-detail" id="wd-detail">
+              <p class="wd-name">kernel_task</p>
+              <p class="wd-summary">The core of macOS itself. A high number here is usually macOS protecting itself from heat.</p>
+              <div class="wd-chips">
+                <span class="wd-chip">Part of macOS</span>
+                <span class="wd-chip wd-chip-leave">Leave this one alone</span>
+              </div>
+              <p class="wd-text">This is the operating system rather than an app. When your Mac gets warm, macOS deliberately makes kernel_task busy so other things cannot use the processor — it is easing off the throttle, not causing the heat. High kernel_task beside a warm machine points at something else working hard. It cannot be quit.</p>
+              <div class="wd-rule" aria-hidden="true"></div>
+              <p class="wd-note">Quitting this would interrupt something important, or stop your Mac working properly.</p>
+              <div class="wd-meta"><span>Also called</span><p>kernel task &nbsp;·&nbsp; kerneltask</p></div>
+              <div class="wd-meta"><span>Known for</span><p>very high cpu &nbsp;·&nbsp; fan on &nbsp;·&nbsp; mac is hot &nbsp;·&nbsp; throttling</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-ink-soft reveal" style="--d:320ms">
+          <span class="flex items-center gap-2"><i class="tick"></i>Search by symptom — "fan loud" finds kernel_task</span>
+          <span class="flex items-center gap-2"><i class="tick"></i>"Safe to quit" or "leave alone", on every entry</span>
+          <span class="flex items-center gap-2"><i class="tick"></i>One tap from any process row in the app</span>
+          <span class="flex items-center gap-2"><i class="tick"></i>Honest when an entry isn't written up yet</span>
         </div>
       </div>
     </section>
@@ -633,7 +735,7 @@
             <div class="lg:col-span-5">
               <div class="dl-card">
                 <p class="font-mono text-xs text-ink-faint uppercase tracking-widest">Latest release</p>
-                <p class="font-display text-3xl font-medium mt-2">Wren 2.5.0</p>
+                <p class="font-display text-3xl font-medium mt-2">Wren 2.5.1</p>
                 <p class="text-sm text-ink-soft mt-1">macOS 14+ · Apple Silicon · DMG</p>
                 <a href="https://github.com/lajoonpark/Wren/releases/latest" target="_blank" rel="noopener" class="btn-primary w-full justify-center mt-6">
                   <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>

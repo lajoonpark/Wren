@@ -368,6 +368,142 @@
     setTimeout(wikiLoop, 1200);
   }
 
+  /* ---------- wiki section demo ---------- */
+  var wdTyped = document.getElementById('wd-typed');
+  var wdRows = document.getElementById('wd-rows');
+  var wdDetail = document.getElementById('wd-detail');
+  var wdCount = document.getElementById('wd-count');
+  if (wdTyped && wdRows && wdDetail && wdCount && !reducedMotion) {
+    var wdSafety = {
+      safe: { label: 'Safe to quit', cls: 'wd-chip-safe', note: 'You can quit this and things will be fine. It comes back when it is needed.' },
+      depends: { label: 'Depends', cls: 'wd-chip-depends', note: 'Quitting this may pause a task rather than break anything.' },
+      leave: { label: 'Leave this one alone', cls: 'wd-chip-leave', note: 'Quitting this would interrupt something important, or stop your Mac working properly.' }
+    };
+    var wdScenarios = [
+      {
+        query: 'fan loud',
+        matches: [
+          { name: 'kernel_task', category: 'Part of macOS' },
+          { name: 'WindowServer', category: 'Part of macOS' }
+        ],
+        entry: {
+          name: 'kernel_task', category: 'Part of macOS', safety: 'leave',
+          summary: 'The core of macOS itself. A high number here is usually macOS protecting itself from heat.',
+          detail: 'This is the operating system rather than an app. When your Mac gets warm, macOS deliberately makes kernel_task busy so other things cannot use the processor \u2014 it is easing off the throttle, not causing the heat. High kernel_task beside a warm machine points at something else working hard. It cannot be quit.',
+          aliases: 'kernel task \u00A0\u00B7\u00A0 kerneltask',
+          knownFor: 'very high cpu \u00A0\u00B7\u00A0 fan on \u00A0\u00B7\u00A0 mac is hot \u00A0\u00B7\u00A0 throttling'
+        }
+      },
+      {
+        query: 'spotlight',
+        matches: [
+          { name: 'mds_stores', category: 'Background service' },
+          { name: 'mdworker_shared', category: 'Background service' }
+        ],
+        entry: {
+          name: 'mds_stores', category: 'Background service', safety: 'depends',
+          summary: 'Spotlight, building the index that makes search work.',
+          detail: 'To find files instantly, macOS keeps an index of everything on your disk. This process writes that index. It works hard right after a macOS update, a large file copy, or connecting a big drive, then goes quiet. Let it finish \u2014 interrupting it just means it starts again.',
+          aliases: 'mds stores \u00A0\u00B7\u00A0 mds \u00A0\u00B7\u00A0 spotlight indexing',
+          knownFor: 'spotlight slow \u00A0\u00B7\u00A0 high cpu after update \u00A0\u00B7\u00A0 search not finding files'
+        }
+      },
+      {
+        query: 'icloud',
+        matches: [
+          { name: 'cloudd', category: 'Sync & cloud' },
+          { name: 'bird', category: 'Sync & cloud' },
+          { name: 'fileproviderd', category: 'Sync & cloud' }
+        ],
+        entry: {
+          name: 'cloudd', category: 'Sync & cloud', safety: 'depends',
+          summary: 'iCloud syncing \u2014 keeping your documents, photos and settings up to date.',
+          detail: 'This moves data between your Mac and iCloud. It gets busy after you add a lot of files, or when you sign in on a new device and everything has to catch up.',
+          aliases: 'cloud d \u00A0\u00B7\u00A0 icloud sync',
+          knownFor: 'icloud \u00A0\u00B7\u00A0 photos uploading \u00A0\u00B7\u00A0 background data'
+        }
+      },
+      {
+        query: 'tabs',
+        matches: [
+          { name: 'Safari Web Content', category: 'Apple app' }
+        ],
+        entry: {
+          name: 'Safari Web Content', category: 'Apple app', safety: 'safe',
+          summary: 'One of the pieces Safari runs underneath itself \u2014 usually a group of browser tabs.',
+          detail: 'Safari splits itself into several processes so one misbehaving tab cannot take the rest down. Each of these holds a set of tabs. A large memory number almost always means many tabs are open. Quitting closes those tabs; Safari offers to reopen them next time.',
+          aliases: 'safari helper \u00A0\u00B7\u00A0 webkit webcontent \u00A0\u00B7\u00A0 safari tab',
+          knownFor: 'high memory \u00A0\u00B7\u00A0 many tabs \u00A0\u00B7\u00A0 safari slow',
+          identifier: 'com.apple.WebKit.WebContent'
+        }
+      }
+    ];
+    var wdIndex = 0;
+    var wdChar = wdTyped.textContent.length;
+    var wdPhase = 'hold';
+
+    function wdDetailHTML(e) {
+      var s = wdSafety[e.safety];
+      var html = '<p class="wd-name">' + e.name + '</p>' +
+        '<p class="wd-summary">' + e.summary + '</p>' +
+        '<div class="wd-chips"><span class="wd-chip">' + e.category + '</span>' +
+        '<span class="wd-chip ' + s.cls + '">' + s.label + '</span></div>' +
+        '<p class="wd-text">' + e.detail + '</p>' +
+        '<div class="wd-rule"></div>' +
+        '<p class="wd-note">' + s.note + '</p>';
+      if (e.aliases) html += '<div class="wd-meta"><span>Also called</span><p>' + e.aliases + '</p></div>';
+      if (e.knownFor) html += '<div class="wd-meta"><span>Known for</span><p>' + e.knownFor + '</p></div>';
+      if (e.identifier) html += '<div class="wd-meta"><span>Identifier</span><p class="wd-mono">' + e.identifier + '</p></div>';
+      return html;
+    }
+
+    function wdSwap(sc) {
+      wdRows.classList.add('is-switching');
+      wdDetail.classList.add('is-switching');
+      setTimeout(function () {
+        wdCount.textContent = sc.matches.length + ' matching';
+        wdRows.innerHTML = sc.matches.map(function (m, i) {
+          return '<div class="wd-row' + (i === 0 ? ' is-selected' : '') + '"><b>' + m.name + '</b><span>' + m.category + '</span></div>';
+        }).join('');
+        wdDetail.innerHTML = wdDetailHTML(sc.entry);
+        wdRows.classList.remove('is-switching');
+        wdDetail.classList.remove('is-switching');
+      }, 300);
+    }
+
+    function wdStep() {
+      if (wdPhase === 'hold') {
+        wdPhase = 'deleting';
+        setTimeout(wdStep, 4600);
+        return;
+      }
+      if (wdPhase === 'deleting') {
+        var current = wdScenarios[wdIndex];
+        wdChar--;
+        wdTyped.textContent = current.query.slice(0, Math.max(0, wdChar));
+        if (wdChar <= 0) {
+          wdPhase = 'typing';
+          wdIndex = (wdIndex + 1) % wdScenarios.length;
+          setTimeout(wdStep, 450);
+        } else {
+          setTimeout(wdStep, 28);
+        }
+        return;
+      }
+      var next = wdScenarios[wdIndex];
+      wdChar++;
+      wdTyped.textContent = next.query.slice(0, wdChar);
+      if (wdChar >= next.query.length) {
+        wdSwap(next);
+        wdPhase = 'hold';
+        setTimeout(wdStep, 0);
+      } else {
+        setTimeout(wdStep, 70 + Math.random() * 85);
+      }
+    }
+    setTimeout(wdStep, 3400);
+  }
+
   /* ---------- apps card shuffle ---------- */
   var shuffleGroup = document.querySelector('[data-shuffle]');
   if (shuffleGroup && !reducedMotion) {
