@@ -5,30 +5,32 @@ struct HistoryView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        ScrollView {
+        // One decimation per update feeds all five charts.
+        let points = session.historyPoints.decimatedForDrawing()
+        return ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 header
-                if session.historyPoints.isEmpty {
+                if points.isEmpty {
                     emptyState
                 } else {
                     ChartCard(title: "Processor use", entry: MetricGlossary.cpu, note: "How busy your Mac has been. Spikes are normal; a line that stays near the top is worth a look.") {
-                        CPUHistoryChart(points: session.historyPoints)
+                        CPUHistoryChart(points: points)
                             .frame(height: 130)
                     }
                     ChartCard(title: "Memory pressure", entry: MetricGlossary.memoryPressure, note: "The measure that actually matters for memory. As long as it stays near the bottom, your Mac has room.") {
-                        PressureHistoryChart(points: session.historyPoints)
+                        PressureHistoryChart(points: points)
                             .frame(height: 130)
                     }
                     ChartCard(title: "Disk-backed memory (swap)", entry: MetricGlossary.swap, note: "Data macOS parked on your disk because RAM was busy. A flat line is fine; a steep climb means your Mac is short on memory.") {
-                        SwapHistoryChart(points: session.historyPoints)
+                        SwapHistoryChart(points: points)
                             .frame(height: 130)
                     }
                     ChartCard(title: "Disk activity", entry: MetricGlossary.diskRead, note: "Files being read and written. Bursts usually mean something is opening, saving or being indexed.") {
-                        ThroughputChart(points: session.historyPoints, keyPath: \.diskBytesPerSecond, tint: Palette.accent)
+                        ThroughputChart(points: points, keyPath: \.diskBytesPerSecond, tint: Palette.accent)
                             .frame(height: 130)
                     }
                     ChartCard(title: "Network activity", entry: MetricGlossary.networkDown, note: "Data coming in and going out. A hump here is usually a download, a call or a backup.") {
-                        ThroughputChart(points: session.historyPoints, keyPath: \.networkBytesPerSecond, tint: Palette.accent)
+                        ThroughputChart(points: points, keyPath: \.networkBytesPerSecond, tint: Palette.accent)
                             .frame(height: 130)
                     }
                 }

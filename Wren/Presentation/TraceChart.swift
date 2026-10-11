@@ -110,13 +110,10 @@ struct TraceCanvas: View {
 
         if showsEndpoint, let tail = series.last {
             let p = point(tail)
-            context.drawLayer { layer in
-                layer.addFilter(.shadow(color: tint.opacity(0.85), radius: 5))
-                layer.fill(
-                    Path(ellipseIn: CGRect(x: p.x - 3.2, y: p.y - 3.2, width: 6.4, height: 6.4)),
-                    with: .color(tint)
-                )
-            }
+            context.fill(
+                Path(ellipseIn: CGRect(x: p.x - 3.2, y: p.y - 3.2, width: 6.4, height: 6.4)),
+                with: .color(tint)
+            )
         }
     }
 
@@ -297,12 +294,13 @@ struct TraceCanvas: View {
 
 // MARK: - Traces
 
+/// Callers own decimation (`decimatedForDrawing()`); these draw the points they're given.
 struct CPUHistoryChart: View {
     let points: [HistoryPoint]
 
     var body: some View {
         TraceCanvas(
-            points: points.decimatedForDrawing(),
+            points: points,
             value: { $0.cpuUsedPercent },
             fixedDomain: 0...100,
             yTicks: [0, 50, 100],
@@ -317,7 +315,7 @@ struct PressureHistoryChart: View {
 
     var body: some View {
         TraceCanvas(
-            points: points.decimatedForDrawing(),
+            points: points,
             value: { Double($0.pressureRaw) },
             areaTopOpacity: 0.2,
             interpolation: .stepEnd,
@@ -344,7 +342,7 @@ struct SwapHistoryChart: View {
 
     var body: some View {
         TraceCanvas(
-            points: points.decimatedForDrawing(),
+            points: points,
             value: { Double($0.swapUsedBytes) },
             areaTopOpacity: 0.18,
             yLabel: { Formatters.bytes(UInt64(max($0, 0))) }
@@ -359,7 +357,7 @@ struct ThroughputChart: View {
 
     var body: some View {
         TraceCanvas(
-            points: points.decimatedForDrawing(),
+            points: points,
             value: { Double($0[keyPath: keyPath]) },
             tint: tint,
             yLabel: { Formatters.rate(UInt64(max($0, 0))) }
@@ -375,7 +373,7 @@ struct PulseTrace: View {
 
     var body: some View {
         TraceCanvas(
-            points: points.decimatedForDrawing(),
+            points: points,
             value: { $0[keyPath: keyPath] },
             tint: tint,
             areaTopOpacity: 0.32,
