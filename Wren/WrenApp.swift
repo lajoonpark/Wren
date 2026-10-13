@@ -15,25 +15,25 @@ struct ContentView: View {
         } else {
             @Bindable var router = router
             TabView(selection: $router.selectedTab) {
-                OverviewView()
+                tab(.overview) { OverviewView() }
                     .tabItem { Label("Overview", systemImage: "waveform.path.ecg") }
                     .tag(AppTab.overview)
-                AppsView()
+                tab(.apps) { AppsView() }
                     .tabItem { Label("Apps", systemImage: "square.grid.2x2") }
                     .tag(AppTab.apps)
-                EnergyView()
+                tab(.energy) { EnergyView() }
                     .tabItem { Label("Energy", systemImage: "bolt") }
                     .tag(AppTab.energy)
-                HistoryView()
+                tab(.history) { HistoryView() }
                     .tabItem { Label("History", systemImage: "chart.line.uptrend.xyaxis") }
                     .tag(AppTab.history)
-                WikiView()
+                tab(.wiki) { WikiView() }
                     .tabItem { Label("Wiki", systemImage: "book.closed") }
                     .tag(AppTab.wiki)
-                AdvancedView()
+                tab(.advanced) { AdvancedView() }
                     .tabItem { Label("Advanced", systemImage: "list.bullet.rectangle") }
                     .tag(AppTab.advanced)
-                SettingsView()
+                tab(.settings) { SettingsView() }
                     .tabItem { Label("Settings", systemImage: "gearshape") }
                     .tag(AppTab.settings)
             }
@@ -55,6 +55,18 @@ struct ContentView: View {
             .onAppear {
                 NSApp.activate(ignoringOtherApps: true)
             }
+        }
+    }
+
+    /// Only the selected tab is kept in the hierarchy. A hidden tab would
+    /// otherwise stay subscribed to the session and re-render on every sample,
+    /// and hold onto its view tree for the life of the window.
+    @ViewBuilder
+    private func tab<Content: View>(_ tab: AppTab, @ViewBuilder content: () -> Content) -> some View {
+        if router.selectedTab == tab {
+            content()
+        } else {
+            Color.clear
         }
     }
 }

@@ -2,14 +2,23 @@ import SwiftUI
 
 struct AppsView: View {
     @Environment(AppSession.self) private var session
+    @Environment(AppRouter.self) private var router
 
-    @State private var sortKey: SortKey = .cpu
-    @State private var sortAscending = false
     @State private var pendingGroup: ProcessGroupStats?
     @State private var quitError: String?
     @State private var rows: [ProcessGroupStats] = []
 
-    enum SortKey { case name, cpu, memory }
+    typealias SortKey = AppsSortKey
+
+    private var sortKey: SortKey {
+        get { router.appsSortKey }
+        nonmutating set { router.appsSortKey = newValue }
+    }
+
+    private var sortAscending: Bool {
+        get { router.appsSortAscending }
+        nonmutating set { router.appsSortAscending = newValue }
+    }
 
     /// Sorted only when a new batch arrives (see `recomputeRows`), never from
     /// `body` — sorting per render made every layout pass re-sort the ledger.

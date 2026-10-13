@@ -2,9 +2,13 @@ import SwiftUI
 
 struct AdvancedView: View {
     @Environment(AppSession.self) private var session
+    @Environment(AppRouter.self) private var router
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var processSortAscending = false
+    private var processSortAscending: Bool {
+        get { router.advancedSortAscending }
+        nonmutating set { router.advancedSortAscending = newValue }
+    }
 
     var body: some View {
         ScrollView {
