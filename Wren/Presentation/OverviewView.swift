@@ -5,12 +5,10 @@ struct OverviewView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    // Each section is its own view that reads only the session values it
+    // shows, so a sample re-evaluates those sections instead of the whole page.
     var body: some View {
-        // One slice and one decimation per update feeds the readout trace and
-        // both history charts — each consumer re-deriving them was per-tick churn.
-        // The engine ships the five-minute slice ready-made with the batch.
-        let trace = session.recentPoints.decimatedForDrawing()
-        return ScrollView {
+        ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 switch session.state {
                 case .idle:
@@ -21,10 +19,10 @@ struct OverviewView: View {
                     measuring
                         .transition(.opacity)
                 case .active:
-                    readout(trace: trace)
-                    whatIsHappening
-                    topApps
-                    recentHistory(trace: trace)
+                    OverviewReadout()
+                    OverviewWhatsHappening()
+                    OverviewTopApps()
+                    OverviewRecentHistory()
                 }
             }
             .padding(20)
@@ -48,11 +46,17 @@ struct OverviewView: View {
             .paperCard()
         }
     }
+}
 
-    // MARK: - The readout
+// MARK: - The readout
 
-    private func readout(trace: [HistoryPoint]) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
+private struct OverviewReadout: View {
+    @Environment(AppSession.self) private var session
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let trace = session.recentPoints.decimatedForDrawing()
+        return VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text("Live reading")
                     .font(Typeface.eyebrow())
@@ -185,9 +189,31 @@ struct OverviewView: View {
         }
     }
 
-    // MARK: - Paper
+    // MARK: - Derived
 
-    private var whatIsHappening: some View {
+    private var cpuMemoryLine: String {
+        guard let snapshot = session.current else { return "" }
+        let cpu = Formatters.percent(snapshot.cpu.totalUsedPercent)
+        let used = Formatters.bytes(snapshot.memory.usedBytes)
+        return "CPU \(cpu)  \u{00B7}  About \(used) of RAM in use"
+    }
+
+    private var cpuPercent: Double { session.current?.cpu.totalUsedPercent ?? 0 }
+    private var cpuFraction: Double { cpuPercent / 100 }
+    private var usedBytes: UInt64 { session.current?.memory.usedBytes ?? 0 }
+    private var memoryFraction: Double { session.current?.memory.usedFraction ?? 0 }
+    private var healthColor: Color {
+        Palette.health(session.interpreted?.level ?? .normal)
+    }
+}
+
+// MARK: - Paper
+
+private struct OverviewWhatsHappening: View {
+    @Environment(AppSession.self) private var session
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionEyebrow(title: "What's happening")
             if let reasons = session.interpreted?.reasons, !reasons.isEmpty {
@@ -218,9 +244,15 @@ struct OverviewView: View {
         // flap re-renders the window every frame (see `Motion`).
         .animation(Motion.respecting(Motion.drift, reduceMotion: reduceMotion), value: session.interpreted?.level)
     }
+}
 
-    private var topApps: some View {
-        let groups = topAppGroups
+private struct OverviewTopApps: View {
+    @Environment(AppSession.self) private var session
+
+    var body: some View {
+        // Partial selection: only five rows are shown, so sorting every group
+        // on each sample is wasted work.
+        let groups = ProcessMetricsCollector.topK(session.appGroups, 5) { $0.cpuPercent > $1.cpuPercent }
         return VStack(alignment: .leading, spacing: 10) {
             SectionEyebrow(title: "What's using your Mac")
             VStack(alignment: .leading, spacing: 0) {
@@ -231,9 +263,14 @@ struct OverviewView: View {
             .paperCard(padding: 14)
         }
     }
+}
 
-    private func recentHistory(trace: [HistoryPoint]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+private struct OverviewRecentHistory: View {
+    @Environment(AppSession.self) private var session
+
+    var body: some View {
+        let trace = session.recentPoints.decimatedForDrawing()
+        return         VStack(alignment: .leading, spacing: 10) {
             SectionEyebrow(title: "Last five minutes")
             HStack(spacing: 12) {
                 PaperChartCard(
@@ -254,27 +291,6 @@ struct OverviewView: View {
                 }
             }
         }
-    }
-
-    // MARK: - Derived
-
-    private var topAppGroups: [ProcessGroupStats] {
-        session.appGroups.sorted { $0.cpuPercent > $1.cpuPercent }.prefix(5).map { $0 }
-    }
-
-    private var cpuMemoryLine: String {
-        guard let snapshot = session.current else { return "" }
-        let cpu = Formatters.percent(snapshot.cpu.totalUsedPercent)
-        let used = Formatters.bytes(snapshot.memory.usedBytes)
-        return "CPU \(cpu)  \u{00B7}  About \(used) of RAM in use"
-    }
-
-    private var cpuPercent: Double { session.current?.cpu.totalUsedPercent ?? 0 }
-    private var cpuFraction: Double { cpuPercent / 100 }
-    private var usedBytes: UInt64 { session.current?.memory.usedBytes ?? 0 }
-    private var memoryFraction: Double { session.current?.memory.usedFraction ?? 0 }
-    private var healthColor: Color {
-        Palette.health(session.interpreted?.level ?? .normal)
     }
 }
 
