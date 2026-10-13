@@ -105,11 +105,14 @@ struct AppsView: View {
                     .frame(width: 62)
             }
 
-            ForEach(rows) { group in
-                AppRow(group: group) {
-                    pendingGroup = group
+            // Lazy: only rows on screen are built and updated each sample.
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(rows) { group in
+                    AppRow(group: group) {
+                        pendingGroup = group
+                    }
+                    .equatable()
                 }
-                .equatable()
             }
         }
         .paperCard(padding: 8)

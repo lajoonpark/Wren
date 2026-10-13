@@ -89,23 +89,26 @@ struct EnergyView: View {
                 .frame(width: 118, alignment: .trailing)
             }
 
-            ForEach(energyGroups) { group in
-                LedgerRow {
-                    ProcessIconView(pid: group.pid ?? -1)
-                    ProcessNameCell(
-                        name: group.name,
-                        bundleIdentifier: group.bundleIdentifier,
-                        detail: group.processCount == 1 ? "1 process" : "\(group.processCount) processes",
-                        font: Typeface.label(13)
-                    )
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            // Lazy: only rows on screen are built and updated each sample.
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(energyGroups) { group in
+                    LedgerRow {
+                        ProcessIconView(pid: group.pid ?? -1)
+                        ProcessNameCell(
+                            name: group.name,
+                            bundleIdentifier: group.bundleIdentifier,
+                            detail: group.processCount == 1 ? "1 process" : "\(group.processCount) processes",
+                            font: Typeface.label(13)
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                    MetricValue(
-                        text: Formatters.watts(group.energyNanojoulesDelta, interval: preferences.sampleInterval),
-                        font: Typeface.data(12.5),
-                        color: Palette.inkSoft
-                    )
-                    .frame(width: 106, alignment: .trailing)
+                        MetricValue(
+                            text: Formatters.watts(group.energyNanojoulesDelta, interval: preferences.sampleInterval),
+                            font: Typeface.data(12.5),
+                            color: Palette.inkSoft
+                        )
+                        .frame(width: 106, alignment: .trailing)
+                    }
                 }
             }
         }

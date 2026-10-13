@@ -153,19 +153,22 @@ struct AdvancedView: View {
                     .frame(width: 110, alignment: .trailing)
                 }
 
-                ForEach(sortedProcesses) { process in
-                    LedgerRow {
-                        Text("\(process.id)")
-                            .font(Typeface.data(11.5))
-                            .monospacedDigit()
-                            .foregroundStyle(Palette.inkSoft)
-                            .frame(width: 52, alignment: .trailing)
-                        ProcessNameCell(name: process.name, bundleIdentifier: process.bundleIdentifier)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        MetricValue(text: Formatters.percent(process.cpuPercent), font: Typeface.data(12))
-                            .frame(width: 62, alignment: .trailing)
-                        MetricValue(text: Formatters.bytes(process.memoryBytes), font: Typeface.data(12), color: Palette.inkSoft)
-                            .frame(width: 98, alignment: .trailing)
+                // Lazy: only rows on screen are built and updated each sample.
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(sortedProcesses) { process in
+                        LedgerRow {
+                            Text("\(process.id)")
+                                .font(Typeface.data(11.5))
+                                .monospacedDigit()
+                                .foregroundStyle(Palette.inkSoft)
+                                .frame(width: 52, alignment: .trailing)
+                            ProcessNameCell(name: process.name, bundleIdentifier: process.bundleIdentifier)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            MetricValue(text: Formatters.percent(process.cpuPercent), font: Typeface.data(12))
+                                .frame(width: 62, alignment: .trailing)
+                            MetricValue(text: Formatters.bytes(process.memoryBytes), font: Typeface.data(12), color: Palette.inkSoft)
+                                .frame(width: 98, alignment: .trailing)
+                        }
                     }
                 }
             }

@@ -94,15 +94,18 @@ struct WikiView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
-                            ForEach(results) { match in
-                                WikiListRow(
-                                    entry: match.entry,
-                                    isSelected: match.entry.id == displayedEntry?.id
-                                ) {
-                                    pinnedEntryID = match.entry.id
-                                    fallback = nil
+                            // Lazy: only rows on screen are built and updated each sample.
+                            LazyVStack(alignment: .leading, spacing: 0) {
+                                ForEach(results) { match in
+                                    WikiListRow(
+                                        entry: match.entry,
+                                        isSelected: match.entry.id == displayedEntry?.id
+                                    ) {
+                                        pinnedEntryID = match.entry.id
+                                        fallback = nil
+                                    }
+                                    .id(match.entry.id)
                                 }
-                                .id(match.entry.id)
                             }
                         }
                     }
