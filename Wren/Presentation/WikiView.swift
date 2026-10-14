@@ -7,10 +7,22 @@ struct WikiView: View {
     @Environment(AppRouter.self) private var router
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var query = ""
-    @State private var pinnedEntryID: String?
-    @State private var fallback: ProcessFallback?
     @State private var scrollTargetID: String?
+
+    private var query: String {
+        get { router.wikiQuery }
+        nonmutating set { router.wikiQuery = newValue }
+    }
+
+    private var pinnedEntryID: String? {
+        get { router.wikiPinnedEntryID }
+        nonmutating set { router.wikiPinnedEntryID = newValue }
+    }
+
+    private var fallback: ProcessFallback? {
+        get { router.wikiFallback }
+        nonmutating set { router.wikiFallback = newValue }
+    }
 
     private var results: [ProcessGlossarySearch.Match] {
         ProcessGlossarySearch.search(query)
@@ -34,7 +46,7 @@ struct WikiView: View {
                 .foregroundStyle(Palette.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
 
-            WikiSearchField(text: $query)
+            WikiSearchField(text: Binding(get: { query }, set: { query = $0 }))
 
             HStack(alignment: .top, spacing: 16) {
                 listPane
@@ -49,7 +61,11 @@ struct WikiView: View {
         .background(Palette.paper)
         .animation(Motion.respecting(Motion.drift, reduceMotion: reduceMotion), value: displayedEntry?.id)
         .animation(Motion.respecting(Motion.drift, reduceMotion: reduceMotion), value: results.count)
-        .onAppear(perform: handleRequest)
+        .onAppear {
+            if router.wikiRequest?.id != router.handledWikiRequestID {
+                handleRequest()
+            }
+        }
         .onChange(of: router.wikiRequest?.id) {
             pinnedEntryID = nil
             fallback = nil
@@ -78,15 +94,18 @@ struct WikiView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
-                            ForEach(results) { match in
-                                WikiListRow(
-                                    entry: match.entry,
-                                    isSelected: match.entry.id == displayedEntry?.id
-                                ) {
-                                    pinnedEntryID = match.entry.id
-                                    fallback = nil
+                            // Lazy: only rows on screen are built and updated each sample.
+                            LazyVStack(alignment: .leading, spacing: 0) {
+                                ForEach(results) { match in
+                                    WikiListRow(
+                                        entry: match.entry,
+                                        isSelected: match.entry.id == displayedEntry?.id
+                                    ) {
+                                        pinnedEntryID = match.entry.id
+                                        fallback = nil
+                                    }
+                                    .id(match.entry.id)
                                 }
-                                .id(match.entry.id)
                             }
                         }
                     }
@@ -152,6 +171,7 @@ struct WikiView: View {
 
     private func handleRequest() {
         guard let request = router.wikiRequest else { return }
+        router.handledWikiRequestID = request.id
         query = ""
         if let entry = ProcessGlossarySearch.bestMatch(forName: request.name, bundleIdentifier: request.bundleIdentifier) {
             pinnedEntryID = entry.id
