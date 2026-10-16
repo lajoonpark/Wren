@@ -15,6 +15,9 @@ jobs:
     runs-on: macos-14
     permissions:
       contents: write
+    env:
+      # Release artifacts are Apple Silicon only (see landing page: "Apple Silicon DMG").
+      ARCH: arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,7 +34,7 @@ jobs:
           xcodebuild -project Wren.xcodeproj -scheme Wren -showBuildSettings \
             | grep -E 'MARKETING_VERSION|PRODUCT_BUNDLE_IDENTIFIER' || true
 
-      - name: Build and package DMG
+      - name: Build and package DMG (arm64)
         env:
           DEVELOPER_DIR: /Applications/Xcode_16.2.app/Contents/Developer
         run: ./scripts/make_release.sh
@@ -50,7 +53,25 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ steps.tag.outputs.tag }}"
-          # Create the release if it doesn't exist yet (fails silently if it does).
-          gh release create "$TAG" --title "$TAG" --generate-notes \
-            || echo "Release for $TAG already exists; uploading assets."
+          NOTES_FILE=".github/release-notes/${TAG}.md"
+
+          # Prefer a hand-written notes file checked in for this tag; otherwise
+          # fall back to GitHub's generated commit notes.
+          if [[ -f "$NOTES_FILE" ]]; then
+            DMG_NAME="$(basename "$(ls dist/*.dmg | head -n 1)")"
+            SHA="$(head -n 1 dist/*.dmg.sha256)"
+            NOTES="$(mktemp)"
+            cat "$NOTES_FILE" > "$NOTES"
+            {
+              printf '\n## Checksum\n\n'
+              printf 'SHA-256 for `%s`:\n\n' "$DMG_NAME"
+              printf '```\n%s\n```\n' "$SHA"
+            } >> "$NOTES"
+            gh release create "$TAG" --title "Wren $TAG" --notes-file "$NOTES" \
+              || echo "Release for $TAG already exists; uploading assets."
+          else
+            gh release create "$TAG" --title "Wren $TAG" --generate-notes \
+              || echo "Release for $TAG already exists; uploading assets."
+          fi
+
           gh release upload "$TAG" dist/*.dmg dist/*.dmg.sha256 --clobber
