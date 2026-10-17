@@ -55,6 +55,7 @@ struct ContentView: View {
             .onAppear {
                 NSApp.activate(ignoringOtherApps: true)
             }
+            .background { WindowVisibilityObserver { session.setWindowVisible($0) } }
         }
     }
 

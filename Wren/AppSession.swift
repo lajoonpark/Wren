@@ -39,10 +39,15 @@ final class AppSession {
     /// How often the menu bar numbers move: glanceable, not live.
     static let menuBarRefresh: TimeInterval = 15
 
+    /// Sampling interval while the main window is off screen. Runtime-only:
+    /// never written to `AppPreferences`, so it can never be persisted.
+    static let backgroundSampleInterval: TimeInterval = 20
+
     let preferences: AppPreferences
 
     private let engine = MetricsEngine()
     private var readHolds: Set<UUID> = []
+    private var isWindowVisible = true
 
     init(preferences: AppPreferences) {
         self.preferences = preferences
@@ -93,8 +98,22 @@ final class AppSession {
         }
     }
 
+    /// The interval the engine should run at right now: the user's choice
+    /// while the window is visible, the slow background rate otherwise.
+    private var effectiveSampleInterval: TimeInterval {
+        isWindowVisible ? preferences.sampleInterval : Self.backgroundSampleInterval
+    }
+
+    /// Called by the window-visibility observer. While the window is off screen
+    /// Wren samples far less often, so a hidden window costs almost nothing.
+    func setWindowVisible(_ visible: Bool) {
+        guard visible != isWindowVisible else { return }
+        isWindowVisible = visible
+        engine.setInterval(effectiveSampleInterval)
+    }
+
     func setSampleInterval(_ interval: TimeInterval) {
-        engine.setInterval(interval)
+        engine.setInterval(isWindowVisible ? interval : Self.backgroundSampleInterval)
     }
 
     func selectWindow(_ window: HistoryWindow) {
@@ -107,7 +126,7 @@ final class AppSession {
 
     private func runEngine() {
         engine.setHistoryWindow(selectedWindow)
-        engine.start(interval: preferences.sampleInterval) { [weak self] batch in
+        engine.start(interval: effectiveSampleInterval) { [weak self] batch in
             Task { @MainActor [weak self] in
                 self?.publish(batch)
             }
@@ -117,7 +136,7 @@ final class AppSession {
     private func publish(_ batch: MetricsBatch) {
         guard !isPaused && !isReadHeld else { return }
         current = batch.snapshot
-        processes = ProcessMetricsCollector.applyingAppMetadata(to: batch.processes)
+        processes = batch.processes
         appGroups = ProcessGrouping.buildGroups(from: processes)
         interpreted = batch.interpreted
         historyPoints = batch.historyPoints
@@ -155,6 +174,17 @@ private final class MetricsEngine: @unchecked Sendable {
     private var onBatch: (@Sendable (MetricsBatch) -> Void)?
     private var lastSampleTime: Date?
     private var isCollecting = false
+    private var tickCount = 0
+    private var cachedDisk: IORate?
+    private var cachedNetwork: IORate?
+    private var cachedPower: (thermal: ProcessInfo.ThermalState, lowPowerMode: Bool, battery: BatteryInfo?)?
+
+    /// The IOKit registry scan, the network interface walk and the power-source
+    /// read are the most expensive parts of a tick and change slowly, so refresh
+    /// them every few ticks instead of on every sample. The rate collectors
+    /// measure deltas from their previous call, so a skipped call simply makes the
+    /// next rate span the longer window.
+    private static let slowRefreshEvery = 3
 
     func start(interval: TimeInterval, onBatch: @escaping @Sendable (MetricsBatch) -> Void) {
         self.interval = interval
@@ -200,18 +230,30 @@ private final class MetricsEngine: @unchecked Sendable {
         isCollecting = true
         defer { isCollecting = false }
 
+        tickCount += 1
+        // Refresh the expensive reads every few ticks, and always until we have a
+        // usable baseline. In between, reuse the last values.
+        let refreshSlow = tickCount % Self.slowRefreshEvery == 0
+            || cachedDisk == nil || cachedNetwork == nil || cachedPower == nil
+
         let cpu = systemCollector.cpuCounters()
-        let disk = ioCollector.diskRate(at: now)
-        let network = ioCollector.networkRate(at: now)
+        if refreshSlow {
+            if let disk = ioCollector.diskRate(at: now) { cachedDisk = disk }
+            if let network = ioCollector.networkRate(at: now) { cachedNetwork = network }
+            cachedPower = powerCollector.read()
+        }
         let processesLimit = processCollector.processSnapshots(now: now)
 
-        guard let cpu, let disk, let network, let processesLimit else {
+        guard let cpu,
+              let disk = cachedDisk,
+              let network = cachedNetwork,
+              let power = cachedPower,
+              let processesLimit else {
             lastSampleTime = now
             return
         }
 
         let memory = systemCollector.memoryCounters()
-        let power = powerCollector.read()
         lastSampleTime = now
 
         let snapshot = SystemSnapshot(
@@ -226,7 +268,7 @@ private final class MetricsEngine: @unchecked Sendable {
             lowPowerMode: power.lowPowerMode
         )
 
-        let processes = Self.topProcesses(from: processesLimit)
+        let processes = ProcessMetricsCollector.applyingAppMetadata(to: Self.topProcesses(from: processesLimit))
 
         let point = HistoryPoint(
             timestamp: now,

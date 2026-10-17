@@ -115,9 +115,10 @@ final class ProcessMetricsCollector: @unchecked Sendable {
     }
 
     /// Applies AppKit metadata (display name, bundle ID, is-application) to a batch of
-    /// snapshots. `NSRunningApplication` is main-thread-only and must never be called on
-    /// the sampling queue — doing so blocks collection and leaves the app stuck "measuring".
-    @MainActor
+    /// snapshots. Runs on the sampling queue so the LaunchServices lookup and the
+    /// icon read stay off the main thread: `NSRunningApplication` is thread-safe for
+    /// property reads, and an NSImage may be created off-main for later main-thread
+    /// drawing.
     static func applyingAppMetadata(to processes: [ProcessSnapshot]) -> [ProcessSnapshot] {
         let cache = RunningAppCache.shared
         cache.prune()
