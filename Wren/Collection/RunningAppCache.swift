@@ -34,7 +34,8 @@ final class RunningAppCache: @unchecked Sendable {
     private struct Slot {
         /// Resolved metadata, or nil when the PID has no `NSRunningApplication`.
         var entry: Entry?
-        /// Resolved eagerly on first sight, along with the metadata.
+        /// Resolved eagerly on first sight, along with the metadata, at the
+        /// size the ledger draws.
         var icon: NSImage?
         var lastSeen: Date
     }
@@ -59,13 +60,14 @@ final class RunningAppCache: @unchecked Sendable {
         lock.unlock()
 
         let app = NSRunningApplication(processIdentifier: pid)
+        let icon = app?.icon.map(Self.thumbnail)
         let slot = Slot(
             entry: app.map { Entry(
                 localizedName: $0.localizedName,
                 bundleIdentifier: $0.bundleIdentifier,
                 isApplication: $0.activationPolicy == .regular
             ) },
-            icon: app?.icon,
+            icon: icon,
             lastSeen: Date()
         )
         lock.lock()
@@ -90,5 +92,41 @@ final class RunningAppCache: @unchecked Sendable {
         defer { lock.unlock() }
         let now = Date()
         cache = cache.filter { now.timeIntervalSince($0.value.lastSeen) <= Self.lifetime }
+    }
+
+    // MARK: - Icon thumbnail
+
+    /// The ledger draws a 20 pt icon. Handing SwiftUI the full 512 pt app icon
+    /// and letting `Image(nsImage:).resizable()` scale it on every row build
+    /// made scrolling re-sample a large source bitmap. This is the size the row
+    /// actually draws, at 2× for Retina, so drawing is a straight copy.
+    private static let iconPointSize = NSSize(width: 20, height: 20)
+    private static let iconScale: CGFloat = 2
+
+    /// Resolved once per process on the sampling queue, never during a scroll.
+    ///
+    /// Core Graphics rather than `NSImage.draw`: file icons are read and scaled
+    /// off the main thread, and CG contexts are explicitly safe to use there.
+    private static func thumbnail(of icon: NSImage) -> NSImage {
+        let pointSize = iconPointSize
+        let pixelWidth = Int(pointSize.width * iconScale)
+        let pixelHeight = Int(pointSize.height * iconScale)
+
+        var proposed = NSRect(origin: .zero, size: pointSize)
+        guard let source = icon.cgImage(forProposedRect: &proposed, context: nil, hints: nil),
+              let context = CGContext(
+                data: nil,
+                width: pixelWidth,
+                height: pixelHeight,
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              ) else { return icon }
+
+        context.interpolationQuality = .high
+        context.draw(source, in: CGRect(x: 0, y: 0, width: pixelWidth, height: pixelHeight))
+        guard let scaled = context.makeImage() else { return icon }
+        return NSImage(cgImage: scaled, size: pointSize)
     }
 }

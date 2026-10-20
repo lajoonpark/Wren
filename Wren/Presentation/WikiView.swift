@@ -203,6 +203,7 @@ private struct WikiListRow: View {
     let isSelected: Bool
     let action: () -> Void
 
+    @Environment(AppSession.self) private var session
     @State private var isHovering = false
 
     var body: some View {
@@ -226,7 +227,11 @@ private struct WikiListRow: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering in
-            withAnimation(Motion.reveal) { isHovering = hovering }
+            if session.isScrolling {
+                isHovering = hovering
+            } else {
+                withAnimation(Motion.reveal) { isHovering = hovering }
+            }
         }
     }
 }

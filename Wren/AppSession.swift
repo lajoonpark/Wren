@@ -46,12 +46,21 @@ final class AppSession {
     let preferences: AppPreferences
 
     private let engine = MetricsEngine()
-    private var readHolds: Set<UUID> = []
+    @ObservationIgnored private var readHolds: Set<UUID> = []
     private var isWindowVisible = true
+
+    /// Process-wide scroll notifications, so one monitor covers every tab and
+    /// every ledger without a representable per scroll view.
+    @ObservationIgnored private lazy var scrollMonitor = ScrollActivityMonitor { [weak self] scrolling in
+        self?.isScrolling = scrolling
+    }
 
     init(preferences: AppPreferences) {
         self.preferences = preferences
         self.selectedWindow = preferences.historyWindow
+        // Touch the lazy monitor so its observers are installed even if no
+        // hover handler ever reads `isScrolling`.
+        _ = scrollMonitor
     }
 
     var cpuPercent: Double {
@@ -64,9 +73,17 @@ final class AppSession {
 
     /// True while the reader is mid-read: a row under the pointer or an open
     /// glossary card. Publishing stops so nothing moves under them.
-    var isReadHeld: Bool {
-        !readHolds.isEmpty
-    }
+    ///
+    /// Stored, not computed from `readHolds`: the set is touched on every row
+    /// hover, and an observed computed property made the toolbar re-evaluate on
+    /// hover traffic nobody sees. `readHolds` itself is deliberately unobserved.
+    private(set) var isReadHeld = false
+
+    /// True while a scroll view is in motion. Read by hover handlers and by
+    /// `publish`, never rendered directly, so changes to it must not invalidate
+    /// the view tree. The background sampler keeps recording history while this
+    /// is true; only the UI snapshot is held.
+    @ObservationIgnored private(set) var isScrolling = false
 
     func start() {
         guard state == .idle else { return }
@@ -95,6 +112,12 @@ final class AppSession {
             readHolds.insert(id)
         } else {
             readHolds.remove(id)
+        }
+        // Only the empty/non-empty boundary is observable. Otherwise every row
+        // the pointer crosses invalidates the views that read `isReadHeld`.
+        let heldNow = !readHolds.isEmpty
+        if heldNow != isReadHeld {
+            isReadHeld = heldNow
         }
     }
 
@@ -134,7 +157,11 @@ final class AppSession {
     }
 
     private func publish(_ batch: MetricsBatch) {
-        guard !isPaused && !isReadHeld else { return }
+        // Scrolling makes the pointer sweep the ledger and SwiftUI rebuild rows
+        // as they enter the viewport. Publishing new CPU numbers during that
+        // also re-sorts the list under the finger, so hold the UI snapshot for
+        // the length of the gesture. History still records every sample.
+        guard !isPaused && !isReadHeld && !isScrolling else { return }
         current = batch.snapshot
         processes = batch.processes
         appGroups = ProcessGrouping.buildGroups(from: processes)

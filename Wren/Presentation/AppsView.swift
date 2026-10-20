@@ -172,6 +172,7 @@ private struct AppRow: View, Equatable {
     }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(AppSession.self) private var session
     @State private var isHovering = false
 
     var body: some View {
@@ -207,7 +208,13 @@ private struct AppRow: View, Equatable {
                 .accessibilityHidden(!isHovering)
         }
         .onHover { hovering in
-            withAnimation(Motion.reveal) { isHovering = hovering }
+            if session.isScrolling {
+                isHovering = hovering
+            } else {
+                withAnimation(Motion.respecting(Motion.reveal, reduceMotion: reduceMotion)) {
+                    isHovering = hovering
+                }
+            }
         }
     }
 

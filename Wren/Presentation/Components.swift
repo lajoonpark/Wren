@@ -46,7 +46,11 @@ struct ProcessNameCell: View {
         .accessibilityLabel(name)
         .accessibilityHint("Opens the wiki to explain what this is")
         .onHover { hovering in
-            withAnimation(Motion.reveal) { isHovering = hovering }
+            // Text-colour changes are the expensive part of hover: animating
+            // them re-rasterizes the name's glyphs at display refresh, and a
+            // scroll sweeps the pointer across many names. The colour and glyph
+            // still change, just without an easing curve.
+            isHovering = hovering
             session.setReadHold(holdID, hovering)
         }
         .onDisappear {
@@ -222,6 +226,7 @@ struct ReadoutTile: View {
 struct LedgerRow<Content: View>: View {
     @ViewBuilder var content: Content
 
+    @Environment(AppSession.self) private var session
     @State private var isHovering = false
 
     var body: some View {
@@ -235,7 +240,11 @@ struct LedgerRow<Content: View>: View {
             Palette.rule.frame(height: 1)
         }
         .onHover { hovering in
-            withAnimation(Motion.reveal) { isHovering = hovering }
+            if session.isScrolling {
+                isHovering = hovering
+            } else {
+                withAnimation(Motion.reveal) { isHovering = hovering }
+            }
         }
         .accessibilityElement(children: .combine)
     }
